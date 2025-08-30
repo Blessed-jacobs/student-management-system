@@ -205,11 +205,12 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(students.userId, users.id))
       .innerJoin(courses, eq(enrollments.courseId, courses.id));
 
-    if (courseId) {
-      query = query.where(eq(enrollments.courseId, courseId));
-    }
-    if (studentId) {
-      query = query.where(eq(enrollments.studentId, studentId));
+    const conditions = [];
+    if (courseId) conditions.push(eq(enrollments.courseId, courseId));
+    if (studentId) conditions.push(eq(enrollments.studentId, studentId));
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     const result = await query;
