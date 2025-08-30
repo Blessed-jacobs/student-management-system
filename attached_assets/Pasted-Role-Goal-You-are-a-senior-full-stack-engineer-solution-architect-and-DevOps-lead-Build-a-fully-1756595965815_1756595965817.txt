@@ -1,0 +1,213 @@
+Role & Goal
+You are a senior full-stack engineer, solution architect, and DevOps lead. Build a fully functional, production-ready Student Management System (SMS) for teachers with end-to-end code (frontend, backend, DB, testing, CI/CD, infra, and docs). The system must run offline (on-prem PWA with sync) and online (cloud/SaaS multi-tenant), with internationalization, flexible grading, analytics dashboards, and downloadable results.
+
+1) Architecture & Tech Stack
+
+Frontend: React + TypeScript, React Router, Tailwind CSS, Zustand (or Redux Toolkit) for state, React Query for data fetching/caching, PWA (service worker + IndexedDB) for offline, i18n (react-i18next).
+
+Backend: Node.js + TypeScript, Express.js, Prisma ORM, Zod for validation, RBAC middleware, rate limiting (express-rate-limit), helmet, CORS.
+
+Database: PostgreSQL (cloud & on-prem), Prisma migrations, row-level multi-tenancy (tenant_id).
+
+Auth: Email/password with bcrypt, JWT access + refresh tokens; roles = Admin, Teacher, Student (and Parent/Guardian enabled but toggleable).
+
+Offline/Sync: Service Worker, IndexedDB cache, background sync queue; conflict resolution strategy (last-write-wins + server validation hooks).
+
+File/PDF: Server-side PDF generation for report cards/transcripts (e.g., pdfkit) and CSV import/export.
+
+Analytics: Aggregations + charts (Recharts or Chart.js).
+
+Internationalization: EN default; architecture prepared for additional locales; date/number formats via Intl.
+
+Testing: Jest (unit), Supertest (API), React Testing Library (UI), Cypress (E2E smoke).
+
+Packaging/DevOps: Dockerfiles (frontend/backend/db), Docker Compose for on-prem; CI (GitHub Actions) for lint/test/build; IaC example for cloud (Terraform stubs or minimal scripts).
+
+Docs: README, .env examples, API docs (Markdown + OpenAPI/Swagger), seed scripts, admin bootstrap.
+
+2) Core Domains & Features
+
+Multi-Tenant (SaaS):
+
+Tenant = school; isolated data via tenant_id.
+
+Admin superuser can create tenants; tenant admins manage users/courses within their school.
+
+User Management:
+
+Admin: CRUD teachers/students/parents, assign roles, reset passwords.
+
+Teacher: manage assigned courses/classes, attendance, grading, CA.
+
+Student: view profile, grades, attendance, download results.
+
+Parent (optional): read-only access to child’s grades/attendance, notifications.
+
+Student Management:
+
+Profiles (photo, biodata, guardian contacts), enrollment history, class assignments.
+
+CSV import/export for bulk enrollment and updates.
+
+Courses & Classes:
+
+Course (code, title, description, credit units).
+
+Class sections, timetables (optional minimal scheduler).
+
+Teacher-course assignment.
+
+Attendance:
+
+Session-based marking per course/date; percentage auto-calculated; absence reasons.
+
+Offline marking allowed; sync when online.
+
+Grading & Continuous Assessment:
+
+Configurable grading scheme per tenant (e.g., CA 40% / Exam 60% with custom ranges and letter grades).
+
+Create CA items (quizzes/assignments/projects) with weights; exam entry; total score + grade computation; moderation controls.
+
+Bulk upload via CSV; validation + error report.
+
+Results & Reporting:
+
+Per-course and per-term results; per-student transcript; PDF generation (download/email).
+
+Export CSV/Excel; audit trail of grade changes.
+
+Notifications & Comms:
+
+In-app notifications; email adapters with queue (BullMQ + Redis optional); events for grade posted/attendance alerts.
+
+Security & Compliance:
+
+RBAC across routes; input validation (Zod); audit logs (who did what/when); secure headers; rate limits; password policy.
+
+Data protection: env-based secrets, backups, minimal PII exposure in logs.
+
+Settings:
+
+Tenant-level configs: grading scale, term dates, locale/timezone, branding (logo/colors on PDF).
+
+3) Data Model (Prisma outline—expand in code)
+
+Tenant: id, name, subdomain, locale, timezone, grading_config, createdAt.
+
+User: id, tenantId, role (ADMIN|TEACHER|STUDENT|PARENT), email, passwordHash, profile fields, relations (guardianOf[]).
+
+Course: id, tenantId, code, title, description, creditUnits, teachers[].
+
+ClassSection: id, tenantId, name, courseId, schedule JSON.
+
+StudentProfile: id, tenantId, userId, admissionNo, guardianIds[].
+
+Attendance: id, tenantId, courseId, classSectionId, date, entries[] (studentId, status, note).
+
+AssessmentItem: id, tenantId, courseId, title, type (CA|EXAM), weight, maxScore.
+
+Score: id, tenantId, studentId, courseId, assessmentItemId, rawScore, computedTotal (denormalized).
+
+Result: id, tenantId, studentId, termId, gpa/grade JSON snapshot; PDF link.
+
+Term: id, tenantId, name, startDate, endDate.
+
+AuditLog: id, tenantId, actorId, action, entity, before/after, at.
+(Include indexes and FKs; enforce tenant_id on all tables.)
+
+4) API Surface (representative—generate full OpenAPI & routes)
+
+Auth: POST /auth/login, POST /auth/refresh, POST /auth/logout.
+
+Tenants: POST /tenants, GET /tenants/:id.
+
+Users: POST /users, PATCH /users/:id, GET /users?role=TEACHER|STUDENT|PARENT.
+
+Courses: GET/POST /courses, PATCH /courses/:id.
+
+ClassSections: GET/POST /class-sections.
+
+Attendance: POST /attendance/:courseId/:date, GET /attendance?studentId=....
+
+Assessments: POST /assessments, GET /assessments?courseId=....
+
+Scores: POST /scores/bulk, GET /scores?studentId=&courseId=, compute totals.
+
+Results: POST /results/generate?studentId=&termId=, GET /results/:id/pdf.
+
+Settings: PATCH /settings/grading, PATCH /settings/branding.
+
+Audit: GET /audit?entity=user&actorId=....
+(All endpoints: validation schemas, RBAC guards, pagination/query params, consistent error envelopes.)
+
+5) Frontend UX (React + Tailwind)
+
+Dashboards:
+
+Admin: tenants/users overview, quick actions, recent activity.
+
+Teacher: today’s classes, attendance quick-mark, grading queue, alerts.
+
+Student: grades timeline, attendance %, downloadable PDFs.
+
+Key Screens:
+
+Auth (login/forgot), User & Role management, Course & Class CRUD, Attendance sheet (mobile-friendly), Gradebook (per course), CA setup, CSV upload w/ preview, Result generation view, Analytics (charts: averages, pass rates, attendance trends), Settings (grading, locale, branding).
+
+Offline:
+
+PWA install banner; local cache of last N days of courses/students; optimistic UI for attendance/grades; background sync with conflict badges.
+
+6) Internationalization
+
+i18n scaffolding with translation JSONs (e.g., en, sample fr), date/number formatting via Intl; dynamic locale from tenant settings; translations for core UI and PDFs.
+
+7) Testing & Quality
+
+Lint + format (ESLint, Prettier).
+
+Unit (Jest) for utils/validators; API (Supertest) for auth/courses/scores; UI (RTL) for key views; E2E smoke (Cypress).
+
+Seed script to create sample tenant, users (admin/teacher/student), demo courses, and data.
+
+8) Deployment & Ops
+
+On-Prem (Offline-First): Docker Compose (frontend, backend, postgres, optional redis for queues), .env.example, volume mounts, backups.
+
+Cloud (Online SaaS): build scripts + GitHub Actions for CI (lint/test/build); sample deployment to Render/Fly.io (backend + Postgres) and Vercel/Netlify (frontend).
+
+Backup & restore scripts; admin bootstrap; health checks (/healthz), basic telemetry logs.
+
+9) Documentation (deliver as files)
+
+README.md with setup (on-prem and cloud), environment variables, scripts, seed, login creds, PWA tips.
+
+API.md + OpenAPI (YAML/JSON) with endpoints, params, examples.
+
+ARCHITECTURE.md (diagrams + sync strategy + multi-tenant notes).
+
+SECURITY.md (RBAC, auth, common threats mitigations).
+
+CHANGELOG.md (Conventional Commits), release notes v1.0.0.
+
+CONTRIBUTING.md (coding standards, commit conventions, branch strategy).
+
+10) Delivery Order & Acceptance
+
+Generate Prisma schema + migrations + seed.
+
+Implement backend routes with validation, RBAC, tests.
+
+Implement frontend screens + PWA + offline cache/sync.
+
+Add PDF/CSV utilities; analytics dashboards.
+
+Add i18n, settings, and final polish.
+
+Provide Docker Compose, CI, and all documentation.
+
+Include quickstart commands and test users.
+Acceptance: Project runs locally via docker compose up, seeds demo data, supports login for all roles, allows attendance marking, CA & exam scoring, result generation + PDF download, works offline (basic flows) and syncs when online, passes tests, and deploys to cloud with provided scripts.
+
+Important: Provide all code and files inline, structured by folder tree. Avoid placeholders that require manual authoring beyond environment variables. Where choices are ambiguous, pick sensible defaults and document them.
