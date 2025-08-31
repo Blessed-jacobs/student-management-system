@@ -70,8 +70,8 @@ export default function Courses() {
       course.teacher?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.teacher?.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesGrade = !gradeFilter || course.gradeLevel === gradeFilter;
-    const matchesStatus = !statusFilter || 
+    const matchesGrade = !gradeFilter || gradeFilter === 'all' || course.gradeLevel === gradeFilter;
+    const matchesStatus = !statusFilter || statusFilter === 'all' || 
       (statusFilter === 'ACTIVE' && course.isActive) || 
       (statusFilter === 'INACTIVE' && !course.isActive);
     
@@ -165,7 +165,7 @@ export default function Courses() {
                 <SelectValue placeholder="All Grades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Grades</SelectItem>
+                <SelectItem value="all">All Grades</SelectItem>
                 <SelectItem value="GRADE_9">Grade 9</SelectItem>
                 <SelectItem value="GRADE_10">Grade 10</SelectItem>
                 <SelectItem value="GRADE_11">Grade 11</SelectItem>
@@ -177,7 +177,7 @@ export default function Courses() {
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
@@ -186,8 +186,8 @@ export default function Courses() {
               variant="secondary" 
               onClick={() => {
                 setSearchTerm("");
-                setGradeFilter("");
-                setStatusFilter("");
+                setGradeFilter("all");
+                setStatusFilter("all");
               }}
               data-testid="button-clear-filters"
             >
